@@ -19,9 +19,11 @@ class App extends Component {
     isOpen: [],
     firstPickedIndex: null,
     secondPickedIndex: null,
+    steps: 0,
+    isEnded: false,
   };
 
-  componentDidMount() {
+  initGame = () => {
     let newCardsSymbols = [
       ...this.state.cardSymbols,
       ...this.state.cardSymbols,
@@ -37,20 +39,28 @@ class App extends Component {
       cardSymbolsInRand,
       isOpen,
     });
+  };
+
+  componentDidMount() {
+    this.initGame();
   }
 
   shuffleArray = (arr: string | any[]) => {
     const newArr = arr.slice();
     for(let i = newArr.length -1; i > 0; i--){
       const rand = Math.floor(Math.random() * (i + 1));
-      [newArr[i], newArr[rand]] = [newArr[rand], newArr[i]]
+      [newArr[i], newArr[rand]] = [newArr[rand], newArr[i]];
     }
-    return newArr
-  }
+    return newArr;
+  };
 
-  cardPressHandler = (index) => {
-    console.log(index)
+  cardPressHandler = (index: number) => {
     let isOpen = [...this.state.isOpen];
+
+    if (isOpen[index]) {
+      return;
+    }
+
     isOpen[index] = true;
 
     if (
@@ -70,17 +80,31 @@ class App extends Component {
         secondPickedIndex: index,
       });
     }
+
+    this.setState({
+      steps: this.state.steps + 1,
+    });
   };
 
   calculateGameResult = () => {
-    console.log('cacaca')
     if (this.state.firstPickedIndex != null && this.state.secondPickedIndex != null) {
+
+      if (this.state.cardSymbolsInRand.length > 0) {
+        let totalOpens = this.state.isOpen.filter(isOpen => isOpen);
+        if (totalOpens.length === this.state.cardSymbolsInRand.length) {
+          this.setState({
+            isEnded: true,
+          });
+          return;
+        }
+      }
+
       let firstSymbol = this.state.cardSymbolsInRand[this.state.firstPickedIndex];
       let secondSymbol = this.state.cardSymbolsInRand[this.state.secondPickedIndex];
 
       if (firstSymbol != secondSymbol) {
         setTimeout(()=>{
-          let isOpen = [...this.state.isOpen]
+          let isOpen = [...this.state.isOpen];
           isOpen[this.state.firstPickedIndex] = false;
           isOpen[this.state.secondPickedIndex] = false;
 
@@ -100,12 +124,20 @@ class App extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    console.log('update')
-    console.log(prevState)
-    
-    if (prevState.secondPickedIndex != this.state.secondPickedIndex) {
-      this.calculateGameResult()
+    if (prevState.secondPickedIndex !== this.state.secondPickedIndex) {
+      this.calculateGameResult();
     }
+  }
+
+  resetGame = () => {
+    this.initGame();
+
+    this.setState({
+      firstPickedIndex: null,
+      secondPickedIndex: null,
+      steps: 0,
+      isEnded: false,
+    });
   }
 
 
@@ -120,7 +152,7 @@ class App extends Component {
           <View style={styles.main}>
             <View style={styles.gameBoard}>
               {this.state.cardSymbolsInRand.map((symbol, index)=>
-                  <Card
+                <Card
                   key={index}
                   onPress={() => this.cardPressHandler(index)}
                   style={styles.button}
@@ -132,7 +164,19 @@ class App extends Component {
             </View>
           </View>
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Footer Text</Text>
+            <Text style={styles.footerText}>
+              {this.state.isEnded
+                ? `Congrats! You have completed in ${this.state.steps} steps.`
+                : `You have tried ${this.state.steps} time(s).`}
+            </Text>
+            {this.state.isEnded ?
+              <TouchableOpacity 
+                onPress={this.resetGame}
+                style={styles.tryAgainButton}
+                >
+                  <Text style={styles.tryAgainButtonText}>Try Again</Text>
+              </TouchableOpacity>
+              : null}
           </View>
         </SafeAreaView>
       </>
@@ -194,5 +238,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     margin: (Dimensions.get('window').width - 48 * 4) / (5 * 2),
+  },
+
+  tryAgainButton: {
+    backgroundColor: '#eee',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+
+  tryAgainButtonText: {
+    fontSize: 18,
   },
 });
